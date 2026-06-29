@@ -6,13 +6,34 @@
   padding: 0;
 }
 
+html {
+  /* prevent layout shift from scrollbar */
+  scrollbar-gutter: stable;
+}
+
 body {
   font-family: system-ui, -apple-system, sans-serif;
-  background: #f8f7f4;
-  color: #1a1a1a;
+  background: #faf9f6;
+  color: #1c1c1c;
   -webkit-font-smoothing: antialiased;
+  /* safe area for iPhone notch */
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 #root {
-  min-height: 100svh;
+  min-height: 100dvh;
+}
+
+/* Hide scrollbars on filter strips while keeping scroll */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth momentum scrolling on iOS */
+.scroll-touch {
+  -webkit-overflow-scrolling: touch;
 }

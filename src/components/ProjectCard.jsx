@@ -10,27 +10,36 @@ const SKILL_COLOR = {
 export default function ProjectCard({ project, onClick, saved, onSave }) {
   return (
     <article
-      className="bg-white rounded-2xl overflow-hidden shadow-sm border border-stone-100 card-tap cursor-pointer"
+      className="bg-white rounded-2xl overflow-hidden shadow-sm border border-stone-100 card-tap cursor-pointer flex flex-col h-full"
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
     >
-      <div className="relative aspect-[4/3] overflow-hidden">
+      <div className="relative aspect-[4/3] overflow-hidden shrink-0">
         <ProjectIllustration project={project} className="absolute inset-0 w-full h-full" />
+        {/* 44px touch target; visible circle is smaller and centered */}
         <button
-          className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center shadow-sm transition-all ${
-            saved ? 'bg-amber-500 text-white scale-110' : 'bg-white/90 text-stone-400 hover:text-amber-500'
-          }`}
+          className="absolute top-0 right-0 w-11 h-11 flex items-center justify-center"
           onClick={(e) => { e.stopPropagation(); onSave(project.id); }}
-          aria-label={saved ? 'Unsave project' : 'Save project'}
+          aria-label={saved ? 'Remove from saved' : 'Save project'}
+          aria-pressed={saved}
         >
-          <Bookmark size={12} fill={saved ? 'currentColor' : 'none'} />
+          <span
+            className={`w-7 h-7 rounded-full flex items-center justify-center shadow-sm transition-all ${
+              saved ? 'bg-amber-500 text-white scale-110' : 'bg-white/90 text-stone-500'
+            }`}
+          >
+            <Bookmark size={13} fill={saved ? 'currentColor' : 'none'} />
+          </span>
         </button>
       </div>
 
-      <div className="p-2.5 space-y-1.5">
+      <div className="p-2.5 flex flex-col gap-1.5 flex-1">
         <h3 className="font-semibold text-stone-900 text-sm leading-snug line-clamp-2">
           {project.title}
         </h3>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mt-auto">
           <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${SKILL_COLOR[project.skill]}`}>
             {project.skill}
           </span>
@@ -41,7 +50,7 @@ export default function ProjectCard({ project, onClick, saved, onSave }) {
         </div>
         <div className="flex items-center gap-1.5 text-[10px] text-stone-400">
           <span>{project.time}</span>
-          <span>·</span>
+          <span aria-hidden>·</span>
           <span className="font-medium text-stone-600">~${project.cost}</span>
         </div>
       </div>

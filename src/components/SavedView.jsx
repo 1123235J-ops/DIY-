@@ -23,16 +23,15 @@ export default function SavedView({ projects, saved, onSave, onSelect }) {
           <span className="font-bold text-stone-900">{savedProjects.length}</span> saved projects
         </p>
       </div>
-      <div className="masonry">
+      <div className="project-grid">
         {savedProjects.map((project) => (
-          <div key={project.id} className="masonry-item">
-            <ProjectCard
-              project={project}
-              saved={saved.has(project.id)}
-              onSave={onSave}
-              onClick={() => onSelect(project)}
-            />
-          </div>
+          <ProjectCard
+            key={project.id}
+            project={project}
+            saved={saved.has(project.id)}
+            onSave={onSave}
+            onClick={() => onSelect(project)}
+          />
         ))}
       </div>
     </div>

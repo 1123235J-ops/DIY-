@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import CategoryBar from './components/CategoryBar';
 import FilterSheet from './components/FilterSheet';
@@ -31,6 +31,15 @@ export default function App() {
   const [selected, setSelected] = useState(null);
   const [saved, setSaved] = useState(new Set());
   const [showFilter, setShowFilter] = useState(false);
+  const [toast, setToast] = useState(null);
+  const toastTimer = useRef(null);
+
+  const showToast = (msg) => {
+    setToast(msg);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2200);
+  };
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
 
   const toggleSave = (id) => setSaved((prev) => {
     const next = new Set(prev);
@@ -95,7 +104,7 @@ export default function App() {
         <CategoryBar active={style} onSelect={setStyle} />
       )}
 
-      <main className="pb-20">
+      <main className="pb-nav">
         {tab === 'saved' && (
           <SavedView
             projects={projects}
@@ -127,16 +136,15 @@ export default function App() {
             </div>
 
             {filtered.length > 0 ? (
-              <div className="masonry">
+              <div className="project-grid">
                 {filtered.map((project) => (
-                  <div key={project.id} className="masonry-item">
-                    <ProjectCard
-                      project={project}
-                      saved={saved.has(project.id)}
-                      onSave={toggleSave}
-                      onClick={() => setSelected(project)}
-                    />
-                  </div>
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    saved={saved.has(project.id)}
+                    onSave={toggleSave}
+                    onClick={() => setSelected(project)}
+                  />
                 ))}
               </div>
             ) : (
@@ -163,6 +171,7 @@ export default function App() {
         onClose={() => setSelected(null)}
         saved={selected ? saved.has(selected.id) : false}
         onSave={toggleSave}
+        onToast={showToast}
       />
 
       <FilterSheet
@@ -174,6 +183,18 @@ export default function App() {
         onSort={setSort}
         onReset={resetAll}
       />
+
+      {toast && (
+        <div
+          className="fixed left-1/2 z-[70] toast-enter"
+          style={{ bottom: 'calc(78px + env(safe-area-inset-bottom))' }}
+          role="status"
+        >
+          <div className="bg-stone-900 text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-lg whitespace-nowrap">
+            {toast}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { X, Clock, DollarSign, Star, Wrench, ShoppingCart, ListChecks, Bookmark } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { X, Clock, DollarSign, Star, Wrench, ShoppingCart, ListChecks, Bookmark, Check, Share2 } from 'lucide-react';
 import { STYLES } from '../data/projects';
 import ProjectIllustration from './ProjectIllustration';
 
@@ -10,7 +10,16 @@ const SKILL_COLOR = {
 };
 const SKILL_STEPS = { Beginner: 1, Intermediate: 2, Advanced: 3 };
 
-export default function ProjectModal({ project, onClose, saved, onSave }) {
+export default function ProjectModal({ project, onClose, saved, onSave, onToast }) {
+  const [started, setStarted] = useState(false);
+  const [checked, setChecked] = useState(() => new Set());
+
+  // Reset the checklist whenever a different project opens
+  useEffect(() => {
+    setStarted(false);
+    setChecked(new Set());
+  }, [project?.id]);
+
   useEffect(() => {
     if (!project) return;
     document.body.style.overflow = 'hidden';
@@ -28,14 +37,45 @@ export default function ProjectModal({ project, onClose, saved, onSave }) {
   const styleInfo = STYLES.find((s) => s.id === project.style);
   const difficultyDots = SKILL_STEPS[project.skill] || 1;
 
+  const toggleItem = (item) => setChecked((prev) => {
+    const next = new Set(prev);
+    next.has(item) ? next.delete(item) : next.add(item);
+    return next;
+  });
+
+  const handleStart = () => {
+    setStarted(true);
+    if (!saved) onSave(project.id);
+    onToast?.('Project added — checklist ready ✓');
+    // scroll the checklist into view on next paint
+    requestAnimationFrame(() => {
+      document.getElementById('start-checklist')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
+
+  const handleShare = async () => {
+    const text = `${project.title} — a ${project.skill} ${project.style} DIY project (~$${project.cost}, ${project.time}).`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: project.title, text });
+      } else {
+        await navigator.clipboard?.writeText(text);
+        onToast?.('Copied to clipboard');
+      }
+    } catch { /* user cancelled share — ignore */ }
+  };
+
+  const doneCount = checked.size;
+  const total = project.materials.length;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" role="dialog" aria-modal>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" role="dialog" aria-modal aria-label={project.title}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm fade-enter" onClick={onClose} />
 
       <div className="relative bg-white w-full sm:max-w-lg sm:mx-4 sm:rounded-3xl rounded-t-3xl max-h-[94dvh] flex flex-col shadow-2xl sheet-enter">
         {/* Drag handle */}
         <div className="flex justify-center pt-3 sm:hidden shrink-0">
-          <div className="w-10 h-1 bg-stone-200 rounded-full" />
+          <div className="w-10 h-1.5 bg-stone-200 rounded-full" />
         </div>
 
         {/* Scrollable body */}
@@ -45,12 +85,20 @@ export default function ProjectModal({ project, onClose, saved, onSave }) {
             <ProjectIllustration project={project} className="absolute inset-0 w-full h-full" />
             <button
               onClick={onClose}
-              className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-stone-600 hover:bg-white shadow-sm"
+              className="absolute top-3 right-3 w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-stone-600 hover:bg-white shadow-sm"
+              aria-label="Close"
             >
-              <X size={16} />
+              <X size={17} />
+            </button>
+            <button
+              onClick={handleShare}
+              className="absolute top-3 right-14 w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-stone-600 hover:bg-white shadow-sm"
+              aria-label="Share"
+            >
+              <Share2 size={15} />
             </button>
             {styleInfo && (
-              <span className={`absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm bg-white/80 text-stone-700`}>
+              <span className="absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm bg-white/80 text-stone-700">
                 {styleInfo.emoji} {styleInfo.label}
               </span>
             )}
@@ -67,14 +115,12 @@ export default function ProjectModal({ project, onClose, saved, onSave }) {
                 <span className="text-xs text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full">
                   {project.room}
                 </span>
-                <span className="flex items-center gap-0.5">
+                <span className="flex items-center gap-0.5" aria-label={`Difficulty ${difficultyDots} of 3`}>
                   {[1, 2, 3].map((d) => (
                     <div key={d} className={`w-2 h-2 rounded-full ${d <= difficultyDots ? 'bg-amber-500' : 'bg-stone-200'}`} />
                   ))}
                 </span>
-                <span className="text-xs text-stone-400">
-                  {project.saves.toLocaleString()} saves
-                </span>
+                <span className="text-xs text-stone-400">{project.saves.toLocaleString()} saves</span>
               </div>
             </div>
 
@@ -111,19 +157,57 @@ export default function ProjectModal({ project, onClose, saved, onSave }) {
               </div>
             </div>
 
-            {/* Materials */}
-            <div>
-              <div className="flex items-center gap-2 mb-2.5">
-                <ShoppingCart size={13} className="text-amber-500" />
-                <h4 className="text-sm font-semibold text-stone-800">Materials list</h4>
+            {/* Materials — becomes an interactive shopping checklist once started */}
+            <div id="start-checklist">
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="flex items-center gap-2">
+                  <ShoppingCart size={13} className="text-amber-500" />
+                  <h4 className="text-sm font-semibold text-stone-800">
+                    {started ? 'Shopping checklist' : 'Materials list'}
+                  </h4>
+                </div>
+                {started && (
+                  <span className="text-xs font-semibold text-stone-500">{doneCount}/{total}</span>
+                )}
               </div>
-              <ul className="space-y-2">
-                {project.materials.map((m) => (
-                  <li key={m} className="flex items-start gap-2 text-sm text-stone-600">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
-                    {m}
-                  </li>
-                ))}
+
+              {started && (
+                <div className="h-1.5 bg-stone-100 rounded-full mb-3 overflow-hidden">
+                  <div
+                    className="h-full bg-amber-500 rounded-full transition-all"
+                    style={{ width: `${total ? (doneCount / total) * 100 : 0}%` }}
+                  />
+                </div>
+              )}
+
+              <ul className="space-y-1">
+                {project.materials.map((m) => {
+                  const isChecked = checked.has(m);
+                  return started ? (
+                    <li key={m}>
+                      <button
+                        onClick={() => toggleItem(m)}
+                        className="w-full flex items-center gap-3 text-left py-2 px-1 rounded-lg active:bg-stone-50"
+                      >
+                        <span
+                          className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
+                            isChecked ? 'bg-amber-500 border-amber-500 text-white' : 'border-stone-300'
+                          }`}
+                        >
+                          {isChecked && <Check size={13} strokeWidth={3} />}
+                        </span>
+                        <span className={`text-sm ${isChecked ? 'text-stone-400 line-through' : 'text-stone-700'}`}>
+                          {m}
+                        </span>
+                      </button>
+                    </li>
+                  ) : (
+                    <li key={m} className="flex items-start gap-2 text-sm text-stone-600 py-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
+                      {m}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
 
@@ -144,17 +228,26 @@ export default function ProjectModal({ project, onClose, saved, onSave }) {
         <div className="shrink-0 border-t border-stone-100 p-4 flex gap-3 bg-white pb-[max(1rem,env(safe-area-inset-bottom))]">
           <button
             onClick={() => onSave(project.id)}
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center border-2 transition-all shrink-0 ${
+            className={`w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-all shrink-0 ${
               saved
-                ? 'bg-amber-500 border-amber-500 text-white scale-105'
+                ? 'bg-amber-500 border-amber-500 text-white'
                 : 'border-stone-200 text-stone-400 hover:border-amber-400 hover:text-amber-500'
             }`}
-            aria-label={saved ? 'Unsave' : 'Save'}
+            aria-label={saved ? 'Remove from saved' : 'Save'}
+            aria-pressed={saved}
           >
-            <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
+            <Bookmark size={20} fill={saved ? 'currentColor' : 'none'} />
           </button>
-          <button className="flex-1 bg-amber-500 active:bg-amber-600 hover:bg-amber-600 text-white font-bold rounded-2xl text-sm transition-colors shadow-lg shadow-amber-200">
-            Start this project →
+          <button
+            onClick={handleStart}
+            disabled={started}
+            className={`flex-1 h-14 font-bold rounded-2xl text-sm transition-colors shadow-lg shadow-amber-200 ${
+              started
+                ? 'bg-emerald-500 text-white shadow-emerald-200'
+                : 'bg-amber-500 active:bg-amber-600 hover:bg-amber-600 text-white'
+            }`}
+          >
+            {started ? '✓ Building this — checklist below' : 'Start this project →'}
           </button>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { ROOMS, SKILLS, TIME_FILTERS, BUDGET_MAX, SORT_OPTIONS } from '../data/projects';
 
@@ -27,6 +28,17 @@ function ChipGroup({ label, options, value, onChange }) {
 }
 
 export default function FilterSheet({ isOpen, onClose, filters, onChange, sort, onSort, onReset }) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const h = (e) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', h);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', h);
+      document.body.style.overflow = '';
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const update = (key) => (val) => onChange({ ...filters, [key]: val });

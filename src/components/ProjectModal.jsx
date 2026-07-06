@@ -1,89 +1,88 @@
 import { useEffect } from 'react';
-import { X, Clock, DollarSign, Star, Wrench, ShoppingCart, ListChecks, Bookmark, Heart } from 'lucide-react';
+import { X, Clock, DollarSign, Star, Wrench, ShoppingCart, ListChecks, Bookmark, TrendingUp } from 'lucide-react';
 import { STYLES } from '../data/projects';
+import ProjectIllustration from './ProjectIllustration';
 
 const SKILL_COLOR = {
   Beginner:     'bg-emerald-100 text-emerald-700',
   Intermediate: 'bg-sky-100 text-sky-700',
   Advanced:     'bg-violet-100 text-violet-700',
 };
+const SKILL_STEPS = { Beginner: 1, Intermediate: 2, Advanced: 3 };
 
 export default function ProjectModal({ project, onClose, saved, onSave }) {
-  // Lock body scroll while open
   useEffect(() => {
     if (!project) return;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, [project]);
 
-  // Close on Escape
   useEffect(() => {
-    const handler = (e) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    const h = (e) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
   }, [onClose]);
 
   if (!project) return null;
-
   const styleInfo = STYLES.find((s) => s.id === project.style);
+  const difficultyDots = SKILL_STEPS[project.skill] || 1;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" role="dialog" aria-modal>
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Sheet — full-screen on mobile, centered card on sm+ */}
-      <div className="relative bg-white w-full sm:max-w-md sm:mx-4 sm:rounded-3xl rounded-t-3xl max-h-[92dvh] flex flex-col shadow-2xl">
-        {/* Drag handle (mobile) */}
-        <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0">
+      <div className="relative bg-white w-full sm:max-w-lg sm:mx-4 sm:rounded-3xl rounded-t-3xl max-h-[94dvh] flex flex-col shadow-2xl">
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-0 sm:hidden shrink-0">
           <div className="w-10 h-1 bg-stone-200 rounded-full" />
         </div>
 
-        {/* Scrollable content */}
+        {/* Scrollable body */}
         <div className="overflow-y-auto no-scrollbar scroll-touch flex-1">
-          {/* Hero area */}
-          <div className="relative bg-gradient-to-br from-amber-50 to-stone-100 h-40 flex items-center justify-center shrink-0">
-            <span className="text-7xl select-none">{project.image}</span>
+          {/* Illustration hero — larger in modal */}
+          <div className="relative h-52 overflow-hidden sm:rounded-t-3xl">
+            <ProjectIllustration project={project} className="absolute inset-0 w-full h-full" />
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center text-stone-500 hover:bg-white shadow-sm"
-              aria-label="Close"
+              className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-stone-600 hover:bg-white shadow-sm"
             >
               <X size={16} />
             </button>
             {styleInfo && (
-              <span className={`absolute top-4 left-4 text-xs font-semibold px-2 py-1 rounded-full ${styleInfo.color}`}>
+              <span className={`absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm ${styleInfo.color}`}>
                 {styleInfo.emoji} {styleInfo.label}
               </span>
             )}
           </div>
 
           <div className="p-5 space-y-5">
-            {/* Title + badges */}
+            {/* Title */}
             <div>
               <h2 className="text-xl font-bold text-stone-900 leading-tight">{project.title}</h2>
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${SKILL_COLOR[project.skill]}`}>
                   {project.skill}
                 </span>
-                <span className="text-xs text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full">
+                <span className="text-xs text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full">
                   {project.room}
                 </span>
+                <span className="flex items-center gap-0.5">
+                  {[1,2,3].map(d => (
+                    <div key={d} className={`w-2 h-2 rounded-full ${d <= difficultyDots ? 'bg-amber-500' : 'bg-stone-200'}`} />
+                  ))}
+                </span>
                 <span className="text-xs text-stone-400">
-                  {project.saves.toLocaleString()} saves
+                  {project.saves.toLocaleString()} people saved this
                 </span>
               </div>
             </div>
 
-            {/* Stats */}
+            {/* Stats row */}
             <div className="grid grid-cols-3 gap-2">
               {[
-                { icon: Clock,     label: 'Time',      value: project.time },
-                { icon: DollarSign,label: 'Est. Cost',  value: `~$${project.cost}` },
-                { icon: Star,      label: 'Rating',     value: project.rating, gold: true },
+                { icon: Clock,      label: 'Time',     value: project.time,        gold: false },
+                { icon: DollarSign, label: 'Est. Cost', value: `~$${project.cost}`, gold: false },
+                { icon: Star,       label: 'Rating',   value: project.rating,      gold: true },
               ].map(({ icon: Icon, label, value, gold }) => (
                 <div key={label} className="bg-stone-50 rounded-2xl p-3 text-center">
                   <Icon size={15} className={`mx-auto mb-1 ${gold ? 'text-amber-400' : 'text-amber-500'}`} fill={gold ? 'currentColor' : 'none'} />
@@ -127,15 +126,16 @@ export default function ProjectModal({ project, onClose, saved, onSave }) {
               </ul>
             </div>
 
-            {/* Step count */}
-            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-center gap-3">
+            {/* Guide banner */}
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100 rounded-2xl p-4 flex items-center gap-3">
               <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center shrink-0">
                 <ListChecks size={18} className="text-white" />
               </div>
-              <div>
+              <div className="flex-1">
                 <div className="text-sm font-semibold text-stone-800">{project.steps}-step illustrated guide</div>
                 <div className="text-xs text-stone-500 mt-0.5">Photos + measurements for every step</div>
               </div>
+              <TrendingUp size={16} className="text-amber-400 shrink-0" />
             </div>
           </div>
         </div>
@@ -144,14 +144,14 @@ export default function ProjectModal({ project, onClose, saved, onSave }) {
         <div className="shrink-0 border-t border-stone-100 p-4 flex gap-3 bg-white pb-[max(1rem,env(safe-area-inset-bottom))]">
           <button
             onClick={() => onSave(project.id)}
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center border-2 transition-colors shrink-0 ${
-              saved ? 'bg-amber-500 border-amber-500 text-white' : 'border-stone-200 text-stone-400 hover:border-amber-400 hover:text-amber-500'
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center border-2 transition-all shrink-0 ${
+              saved ? 'bg-amber-500 border-amber-500 text-white scale-105' : 'border-stone-200 text-stone-400 hover:border-amber-400 hover:text-amber-500'
             }`}
             aria-label={saved ? 'Unsave' : 'Save'}
           >
             <Bookmark size={18} fill={saved ? 'currentColor' : 'none'} />
           </button>
-          <button className="flex-1 bg-amber-500 active:bg-amber-600 hover:bg-amber-600 text-white font-semibold rounded-2xl text-sm transition-colors">
+          <button className="flex-1 bg-amber-500 active:bg-amber-600 hover:bg-amber-600 text-white font-bold rounded-2xl text-sm transition-colors shadow-lg shadow-amber-200">
             Start this project →
           </button>
         </div>

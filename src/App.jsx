@@ -1,57 +1,46 @@
 import { useState, useMemo } from 'react';
 import Header from './components/Header';
-import StyleGallery from './components/StyleGallery';
-import FilterBar from './components/FilterBar';
+import CategoryBar from './components/CategoryBar';
+import FilterSheet from './components/FilterSheet';
 import ProjectCard from './components/ProjectCard';
 import ProjectModal from './components/ProjectModal';
 import BottomNav from './components/BottomNav';
 import SavedView from './components/SavedView';
-import StylesView from './components/StylesView';
-import { projects } from './data/projects';
+import CategoriesView from './components/CategoriesView';
+import { projects, BUDGET_MAX } from './data/projects';
 import './index.css';
 
-const DEFAULT_FILTERS = { room: 'All', skill: 'All', time: 'All', budget: 'Any budget' };
-
-const BUDGET_MAX = {
-  'Any budget': Infinity,
-  'Under $25':  25,
-  'Under $50':  50,
-  'Under $100': 100,
-  'Under $200': 200,
-};
-
-const TIME_ORDER = { '< 1 hr': 1, '< 4 hrs': 2, 'Weekend': 3, 'Multi-day': 4 };
+const DEFAULT_FILTERS = { room: 'All', skill: 'All', time: 'All', budget: 'Any' };
 
 function sortProjects(list, sort) {
   const arr = [...list];
   switch (sort) {
     case 'rating':   return arr.sort((a, b) => b.rating - a.rating);
-    case 'cost_asc': return arr.sort((a, b) => a.cost - b.cost);
-    case 'time_asc': return arr.sort((a, b) => (TIME_ORDER[a.time] || 5) - (TIME_ORDER[b.time] || 5));
-    default:         return arr.sort((a, b) => b.saves - a.saves); // 'saves' = popular
+    case 'cheapest': return arr.sort((a, b) => a.cost - b.cost);
+    case 'quickest': return arr.sort((a, b) => a.timeMin - b.timeMin);
+    default:         return arr.sort((a, b) => b.saves - a.saves);
   }
 }
 
 export default function App() {
-  const [tab, setTab] = useState('browse');
+  const [tab, setTab] = useState('explore');
   const [search, setSearch] = useState('');
   const [style, setStyle] = useState('All');
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
-  const [sort, setSort] = useState('saves');
+  const [sort, setSort] = useState('popular');
   const [selected, setSelected] = useState(null);
   const [saved, setSaved] = useState(new Set());
+  const [showFilter, setShowFilter] = useState(false);
 
-  const toggleSave = (id) => {
-    setSaved((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
+  const toggleSave = (id) => setSaved((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
 
   const handleStyleSelect = (styleId) => {
     setStyle(styleId);
-    setTab('browse');
+    setTab('explore');
   };
 
   const filtered = useMemo(() => {
@@ -82,7 +71,7 @@ export default function App() {
     filters.room !== 'All',
     filters.skill !== 'All',
     filters.time !== 'All',
-    filters.budget !== 'Any budget',
+    filters.budget !== 'Any',
     !!search,
   ].filter(Boolean).length;
 
@@ -90,89 +79,80 @@ export default function App() {
     setSearch('');
     setStyle('All');
     setFilters(DEFAULT_FILTERS);
-    setSort('saves');
+    setSort('popular');
   };
 
   return (
-    <div className="min-h-dvh bg-stone-50">
-      <Header search={search} onSearch={setSearch} totalCount={projects.length} />
+    <div className="min-h-dvh" style={{ background: 'var(--bg)' }}>
+      <Header
+        search={search}
+        onSearch={setSearch}
+        filterCount={activeFilterCount}
+        onFilterOpen={() => setShowFilter(true)}
+      />
 
-      {tab === 'browse' && (
-        <>
-          <StyleGallery activeStyle={style} onSelect={setStyle} />
-          <FilterBar filters={filters} onChange={setFilters} sort={sort} onSort={setSort} />
-        </>
+      {tab === 'explore' && (
+        <CategoryBar active={style} onSelect={setStyle} />
       )}
 
-      <main className="max-w-7xl mx-auto pb-24 sm:pb-8">
+      <main className="pb-20">
         {tab === 'saved' && (
-          <SavedView projects={projects} saved={saved} onSave={toggleSave} onSelect={setSelected} />
+          <SavedView
+            projects={projects}
+            saved={saved}
+            onSave={toggleSave}
+            onSelect={setSelected}
+          />
         )}
 
-        {tab === 'styles' && (
-          <StylesView onSelectStyle={handleStyleSelect} />
+        {tab === 'categories' && (
+          <CategoriesView onSelectStyle={handleStyleSelect} />
         )}
 
-        {tab === 'browse' && (
-          <div className="px-4 py-4">
-            {activeFilterCount === 0 && (
-              <div className="text-center py-6 mb-2">
-                <div className="text-4xl mb-2">🏗️</div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight">
-                  Build something <span className="text-amber-500">amazing</span>
-                </h1>
-                <p className="text-stone-500 text-sm mt-1 max-w-sm mx-auto">
-                  65 animated DIY projects across 10 styles — from $15 quick wins to full weekend builds.
-                </p>
-              </div>
-            )}
-
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm text-stone-500">
-                <span className="font-bold text-stone-700">{filtered.length}</span>
+        {tab === 'explore' && (
+          <>
+            <div className="flex items-center justify-between px-4 py-2">
+              <p className="text-xs text-stone-500">
+                <span className="font-bold text-stone-800">{filtered.length}</span>
                 {filtered.length !== projects.length && ` of ${projects.length}`} projects
                 {activeFilterCount > 0 && (
-                  <button onClick={resetAll} className="ml-2 text-amber-600 font-medium text-xs underline-offset-2 hover:underline">
+                  <button
+                    onClick={resetAll}
+                    className="ml-2 text-amber-600 text-xs font-semibold hover:underline underline-offset-2"
+                  >
                     Clear all
                   </button>
                 )}
               </p>
-              {saved.size > 0 && (
-                <button
-                  onClick={() => setTab('saved')}
-                  className="text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-bold hover:bg-amber-200 transition-colors"
-                >
-                  ♥ {saved.size} saved
-                </button>
-              )}
             </div>
 
             {filtered.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="masonry">
                 {filtered.map((project) => (
-                  <ProjectCard
-                    key={project.id}
-                    project={project}
-                    saved={saved.has(project.id)}
-                    onSave={toggleSave}
-                    onClick={() => setSelected(project)}
-                  />
+                  <div key={project.id} className="masonry-item">
+                    <ProjectCard
+                      project={project}
+                      saved={saved.has(project.id)}
+                      onSave={toggleSave}
+                      onClick={() => setSelected(project)}
+                    />
+                  </div>
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="flex flex-col items-center justify-center py-20 text-center px-8">
                 <div className="text-5xl mb-3">🔍</div>
                 <p className="font-semibold text-stone-700">No matches</p>
-                <p className="text-sm text-stone-400 mt-1 mb-3">Try loosening the filters</p>
+                <p className="text-sm text-stone-400 mt-1 mb-4">Try different filters or search terms</p>
                 <button
                   onClick={resetAll}
-                  className="text-sm bg-amber-500 text-white font-semibold px-4 py-2 rounded-full hover:bg-amber-600 transition-colors"
+                  className="text-sm bg-amber-500 text-white font-bold px-5 py-2.5 rounded-full shadow-sm shadow-amber-200"
                 >
                   Reset all filters
                 </button>
               </div>
             )}
-          </div>
+          </>
         )}
       </main>
 
@@ -183,6 +163,16 @@ export default function App() {
         onClose={() => setSelected(null)}
         saved={selected ? saved.has(selected.id) : false}
         onSave={toggleSave}
+      />
+
+      <FilterSheet
+        isOpen={showFilter}
+        onClose={() => setShowFilter(false)}
+        filters={filters}
+        onChange={setFilters}
+        sort={sort}
+        onSort={setSort}
+        onReset={resetAll}
       />
     </div>
   );

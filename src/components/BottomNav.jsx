@@ -1,14 +1,14 @@
-import { Grid2X2, Bookmark, Palette } from 'lucide-react';
+import { Compass, LayoutGrid, Bookmark } from 'lucide-react';
 
 const TABS = [
-  { id: 'browse',  Icon: Grid2X2,  label: 'Browse' },
-  { id: 'saved',   Icon: Bookmark, label: 'Saved' },
-  { id: 'styles',  Icon: Palette,  label: 'Styles' },
+  { id: 'explore',    Icon: Compass,    label: 'Explore' },
+  { id: 'categories', Icon: LayoutGrid, label: 'Styles' },
+  { id: 'saved',      Icon: Bookmark,   label: 'Saved' },
 ];
 
 export default function BottomNav({ active, onChange, savedCount }) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-stone-200 sm:hidden pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-stone-100 pb-[env(safe-area-inset-bottom)]">
       <div className="flex">
         {TABS.map(({ id, Icon, label }) => {
           const isActive = active === id;
@@ -22,14 +22,14 @@ export default function BottomNav({ active, onChange, savedCount }) {
               }`}
             >
               <div className="relative">
-                <Icon size={20} fill={isActive ? 'currentColor' : 'none'} strokeWidth={isActive ? 0 : 1.8} />
+                <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
                 {showBadge && (
                   <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                     {savedCount > 9 ? '9+' : savedCount}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] font-medium">{label}</span>
+              <span className={`text-[10px] ${isActive ? 'font-bold' : 'font-medium'}`}>{label}</span>
             </button>
           );
         })}

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { X, Clock, DollarSign, Star, Wrench, ShoppingCart, ListChecks, Bookmark, TrendingUp } from 'lucide-react';
+import { X, Clock, DollarSign, Star, Wrench, ShoppingCart, ListChecks, Bookmark } from 'lucide-react';
 import { STYLES } from '../data/projects';
 import ProjectIllustration from './ProjectIllustration';
 
@@ -24,22 +24,23 @@ export default function ProjectModal({ project, onClose, saved, onSave }) {
   }, [onClose]);
 
   if (!project) return null;
+
   const styleInfo = STYLES.find((s) => s.id === project.style);
   const difficultyDots = SKILL_STEPS[project.skill] || 1;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" role="dialog" aria-modal>
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm fade-enter" onClick={onClose} />
 
-      <div className="relative bg-white w-full sm:max-w-lg sm:mx-4 sm:rounded-3xl rounded-t-3xl max-h-[94dvh] flex flex-col shadow-2xl">
+      <div className="relative bg-white w-full sm:max-w-lg sm:mx-4 sm:rounded-3xl rounded-t-3xl max-h-[94dvh] flex flex-col shadow-2xl sheet-enter">
         {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-0 sm:hidden shrink-0">
+        <div className="flex justify-center pt-3 sm:hidden shrink-0">
           <div className="w-10 h-1 bg-stone-200 rounded-full" />
         </div>
 
         {/* Scrollable body */}
-        <div className="overflow-y-auto no-scrollbar scroll-touch flex-1">
-          {/* Illustration hero — larger in modal */}
+        <div className="overflow-y-auto no-scroll scroll-ios flex-1">
+          {/* Hero illustration */}
           <div className="relative h-52 overflow-hidden sm:rounded-t-3xl">
             <ProjectIllustration project={project} className="absolute inset-0 w-full h-full" />
             <button
@@ -49,14 +50,14 @@ export default function ProjectModal({ project, onClose, saved, onSave }) {
               <X size={16} />
             </button>
             {styleInfo && (
-              <span className={`absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm ${styleInfo.color}`}>
+              <span className={`absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm bg-white/80 text-stone-700`}>
                 {styleInfo.emoji} {styleInfo.label}
               </span>
             )}
           </div>
 
           <div className="p-5 space-y-5">
-            {/* Title */}
+            {/* Title + badges */}
             <div>
               <h2 className="text-xl font-bold text-stone-900 leading-tight">{project.title}</h2>
               <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -67,23 +68,23 @@ export default function ProjectModal({ project, onClose, saved, onSave }) {
                   {project.room}
                 </span>
                 <span className="flex items-center gap-0.5">
-                  {[1,2,3].map(d => (
+                  {[1, 2, 3].map((d) => (
                     <div key={d} className={`w-2 h-2 rounded-full ${d <= difficultyDots ? 'bg-amber-500' : 'bg-stone-200'}`} />
                   ))}
                 </span>
                 <span className="text-xs text-stone-400">
-                  {project.saves.toLocaleString()} people saved this
+                  {project.saves.toLocaleString()} saves
                 </span>
               </div>
             </div>
 
-            {/* Stats row */}
+            {/* Stats grid */}
             <div className="grid grid-cols-3 gap-2">
               {[
-                { icon: Clock,      label: 'Time',     value: project.time,        gold: false },
-                { icon: DollarSign, label: 'Est. Cost', value: `~$${project.cost}`, gold: false },
-                { icon: Star,       label: 'Rating',   value: project.rating,      gold: true },
-              ].map(({ icon: Icon, label, value, gold }) => (
+                { Icon: Clock,      label: 'Time',      value: project.time,        gold: false },
+                { Icon: DollarSign, label: 'Est. Cost', value: `~$${project.cost}`, gold: false },
+                { Icon: Star,       label: 'Rating',    value: project.rating,      gold: true },
+              ].map(({ Icon, label, value, gold }) => (
                 <div key={label} className="bg-stone-50 rounded-2xl p-3 text-center">
                   <Icon size={15} className={`mx-auto mb-1 ${gold ? 'text-amber-400' : 'text-amber-500'}`} fill={gold ? 'currentColor' : 'none'} />
                   <div className="text-sm font-bold text-stone-900">{value}</div>
@@ -126,16 +127,15 @@ export default function ProjectModal({ project, onClose, saved, onSave }) {
               </ul>
             </div>
 
-            {/* Guide banner */}
+            {/* Steps banner */}
             <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100 rounded-2xl p-4 flex items-center gap-3">
               <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center shrink-0">
                 <ListChecks size={18} className="text-white" />
               </div>
-              <div className="flex-1">
+              <div>
                 <div className="text-sm font-semibold text-stone-800">{project.steps}-step illustrated guide</div>
                 <div className="text-xs text-stone-500 mt-0.5">Photos + measurements for every step</div>
               </div>
-              <TrendingUp size={16} className="text-amber-400 shrink-0" />
             </div>
           </div>
         </div>
@@ -145,7 +145,9 @@ export default function ProjectModal({ project, onClose, saved, onSave }) {
           <button
             onClick={() => onSave(project.id)}
             className={`w-12 h-12 rounded-2xl flex items-center justify-center border-2 transition-all shrink-0 ${
-              saved ? 'bg-amber-500 border-amber-500 text-white scale-105' : 'border-stone-200 text-stone-400 hover:border-amber-400 hover:text-amber-500'
+              saved
+                ? 'bg-amber-500 border-amber-500 text-white scale-105'
+                : 'border-stone-200 text-stone-400 hover:border-amber-400 hover:text-amber-500'
             }`}
             aria-label={saved ? 'Unsave' : 'Save'}
           >
